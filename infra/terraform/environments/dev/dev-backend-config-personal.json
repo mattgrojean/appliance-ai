@@ -1,0 +1,8 @@
+{
+  "subscription_id": "0e913a70-d0f3-43f4-983c-ca9738d7aa8c",
+  "resource_group_name": "terraform-uc-dev-01",
+  "storage_account_name": "sadevappliancaitf01",
+  "container_name": "terraform-state-files",
+  "key": "terraform.tfstate",
+  "use_azuread_auth": true
+}
