@@ -13,12 +13,6 @@ resource "azurerm_search_service" "search" {
   # This is required for DefaultAzureCredential / AzureCliCredential to work.
   authentication_failure_mode = "http401WithBearerChallenge"
 
-  # Assign the UAMI so indexers can read from storage with Azure AD
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.search_service_identity.id]
-  }
-
   # "free" tier: no cost, 50MB storage, 3 indexes, no semantic search.
   # Upgrade to "standard" when you need semantic ranking and higher capacity.
   # Change to: sku = "standard" and set semantic_search_sku = "standard" below.

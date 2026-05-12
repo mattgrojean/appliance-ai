@@ -79,6 +79,8 @@ resource "azurerm_role_assignment" "app_ai_user" {
 # -------------------------------------------------------
 
 # Search Service → Storage Blob Data (read service manuals for indexing)
+# The Search Service uses Azure AD authentication to access storage blobs
+# via this role assignment. No storage account keys are required.
 resource "azurerm_role_assignment" "search_blob_reader" {
   scope                = local.rg_scope
   role_definition_name = "Storage Blob Data Contributor"
