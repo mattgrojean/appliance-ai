@@ -18,3 +18,9 @@ output "log_analytics_workspace_name" {
   description = "Log Analytics workspace name"
   value       = azurerm_log_analytics_workspace.logs.name
 }
+
+# KQL query string for debugging indexer errors (use in Azure Portal > Logs)
+output "kql_indexer_errors_query" {
+  description = "KQL query to find Search Service indexer errors in Log Analytics"
+  value       = "AzureDiagnostics | where ResourceType == \"SEARCHSERVICES\" | where Category == \"ExecSummary\" or Category == \"OperationLogs\" | where Status =~ \"Error\" or Status =~ \"Failed\" or ErrorDetail != \"\" | project TimeGenerated, OperationName, Status, ErrorDetail, Details | sort by TimeGenerated desc"
+}

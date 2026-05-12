@@ -1,0 +1,112 @@
+# Ingest PDF service manuals from Azure Blob Storage into Azure AI Search.
+#
+# Trigger: manual (workflow_dispatch) — run from the Actions tab in GitHub.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ONE-TIME SETUP (do this before your first run)
+# ─────────────────────────────────────────────────────────────────────────────
+# This workflow authenticates to Azure via OIDC (no long-lived passwords needed).
+# You need to create a Federated Credential on your App Registration or UAMI,
+# then add four GitHub repository secrets.
+#
+# Option A — Federated credential on an App Registration
+# -------------------------------------------------------
+# 1. In Azure Portal → Entra ID → App registrations → "New registration"
+#    (or reuse your existing one, e.g. the chat app registration)
+# 2. Under "Certificates & secrets" → "Federated credentials" → "Add credential"
+#    - Federated credential scenario: "GitHub Actions deploying Azure resources"
+#    - Organization: your GitHub org/user
+#    - Repository: your repo name
+#    - Entity type: Branch → main (or "Environment" if you use GitHub environments)
+# 3. Note the Application (client) ID and your Tenant ID
+# 4. In Azure Portal → Subscriptions → IAM → add role assignments to the app's
+#    Service Principal:
+#    - "Search Index Data Contributor" on the AI Search service
+#    - "Storage Blob Data Reader" on the storage account
+#
+# Option B — Federated credential on the existing UAMI (sync_func_identity)
+# -------------------------------------------------------------------------
+# 1. In Azure Portal → the sync function UAMI → "Federated credentials" → "Add"
+#    Same settings as Option A but choose "User-assigned managed identity" scenario.
+# 2. Use the UAMI's Client ID as AZURE_CLIENT_ID below.
+# 3. The UAMI already has Search Index Data Contributor and Storage Blob Data Reader
+#    (or add those roles if missing).
+#
+# GitHub repository secrets to add (Settings → Secrets and variables → Actions):
+#   AZURE_TENANT_ID          — your Entra tenant ID
+#   AZURE_CLIENT_ID          — app registration or UAMI client ID from above
+#   AZURE_SUBSCRIPTION_ID    — your Azure subscription ID
+#
+# GitHub repository variables to add (Settings → Secrets and variables → Actions → Variables):
+#   AZURE_STORAGE_ACCOUNT_NAME   — e.g. stortechaimsdn...
+#   AZURE_AI_SEARCH_ENDPOINT     — e.g. https://srch-techai-msdn-dev.search.windows.net
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Ingest Service Manuals
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Re-ingest all PDFs even if already indexed"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      blob:
+        description: "Ingest a single blob by path (leave blank for all PDFs)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  id-token: write   # required for OIDC token request
+  contents: read
+
+jobs:
+  ingest:
+    name: Ingest PDFs into AI Search
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_STORAGE_CONTAINER_NAME: service-manuals
+      SEARCH_INDEX_MANUALS: service-manuals
+      # These are set from repository variables (non-secret, safe to expose):
+      AZURE_STORAGE_ACCOUNT_NAME: ${{ vars.AZURE_STORAGE_ACCOUNT_NAME }}
+      AZURE_AI_SEARCH_ENDPOINT: ${{ vars.AZURE_AI_SEARCH_ENDPOINT }}
+      # Tenant is needed by AzureCliCredential fallback logic in the script:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ai/scripts/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r ai/scripts/requirements.txt
+
+      - name: Login to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run ingestion
+        run: |
+          ARGS=""
+          if [ "${{ inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          if [ -n "${{ inputs.blob }}" ]; then
+            ARGS="$ARGS --blob '${{ inputs.blob }}'"
+          fi
+          python ai/scripts/ingest_manuals.py $ARGS

@@ -6,7 +6,13 @@ variable "subscription_id" {
 variable "location" {
   type        = string
   default     = "East US 2"
-  description = "The Azure region for the resources."
+  description = "The Azure region for the resources (agents, compute, storage)."
+}
+
+variable "search_location" {
+  type        = string
+  default     = "Sweden Central"
+  description = "The Azure region for AI Search (can differ from primary region if primary is out of capacity)."
 }
 
 variable "environment" {

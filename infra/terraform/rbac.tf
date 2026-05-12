@@ -1,20 +1,50 @@
 # Role-Based Access Control (RBAC)
-# All identities are User-Assigned Managed Identities, so roles can be assigned upfront.
+# All scopes are set at the resource group level so a single assignment covers
+# all current and future resources within the group.
+
+locals {
+  rg_scope = azurerm_resource_group.ai.id
+}
 
 # -------------------------------------------------------
-# Function App (Sync) Permissions
+# Current User Access
+# -------------------------------------------------------
+
+# Current user → Azure AI Search (create/manage indexes)
+resource "azurerm_role_assignment" "current_user_search_contributor" {
+  scope                = local.rg_scope
+  role_definition_name = "Search Service Contributor"
+  principal_id         = "c375126e-2760-4ba8-8cd5-a22812f588ef" # Matthew.Grojean@publix.com
+}
+
+# Current user → Azure AI Search (read/write index data)
+resource "azurerm_role_assignment" "current_user_search_data_contributor" {
+  scope                = local.rg_scope
+  role_definition_name = "Search Index Data Contributor"
+  principal_id         = "c375126e-2760-4ba8-8cd5-a22812f588ef" # Matthew.Grojean@publix.com
+}
+
+# Current user → Storage (upload/read service manual PDFs for local ingestion runs)
+resource "azurerm_role_assignment" "current_user_blob_contributor" {
+  scope                = local.rg_scope
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = "c375126e-2760-4ba8-8cd5-a22812f588ef" # Matthew.Grojean@publix.com
+}
+
+# -------------------------------------------------------
+# Function App Permissions
 # -------------------------------------------------------
 
 # Function App → Azure AI Search (write/update indexes)
 resource "azurerm_role_assignment" "func_search_contributor" {
-  scope                = azurerm_search_service.search.id
+  scope                = local.rg_scope
   role_definition_name = "Search Index Data Contributor"
   principal_id         = azurerm_user_assigned_identity.sync_func_identity.principal_id
 }
 
-# Function App → Azure OpenAI (optional, if sync function calls gpt-4o for enrichment)
+# Function App → Azure OpenAI (call gpt-4o for enrichment)
 resource "azurerm_role_assignment" "func_openai_user" {
-  scope                = azurerm_cognitive_account.ai.id
+  scope                = local.rg_scope
   role_definition_name = "Cognitive Services OpenAI User"
   principal_id         = azurerm_user_assigned_identity.sync_func_identity.principal_id
 }
@@ -25,15 +55,33 @@ resource "azurerm_role_assignment" "func_openai_user" {
 
 # Chat App → Azure AI Search (read/query indexes)
 resource "azurerm_role_assignment" "app_search_reader" {
-  scope                = azurerm_search_service.search.id
+  scope                = local.rg_scope
   role_definition_name = "Search Index Data Reader"
   principal_id         = azurerm_user_assigned_identity.chat_app_identity.principal_id
 }
 
-# Chat App → Azure OpenAI (call gpt-4o model)
-resource "azurerm_role_assignment" "app_openai_user" {
-  scope                = azurerm_cognitive_account.ai.id
-  role_definition_name = "Cognitive Services OpenAI User"
+# Chat App → Azure Container Registry (pull the Docker image)
+resource "azurerm_role_assignment" "app_acr_pull" {
+  scope                = local.rg_scope
+  role_definition_name = "AcrPull"
   principal_id         = azurerm_user_assigned_identity.chat_app_identity.principal_id
+}
+
+# Chat App → Azure AI Services (call gpt-4o via Foundry inference endpoint)
+resource "azurerm_role_assignment" "app_ai_user" {
+  scope                = local.rg_scope
+  role_definition_name = "Azure AI User"
+  principal_id         = azurerm_user_assigned_identity.chat_app_identity.principal_id
+}
+
+# -------------------------------------------------------
+# Search Service Permissions
+# -------------------------------------------------------
+
+# Search Service → Storage Blob Data (read service manuals for indexing)
+resource "azurerm_role_assignment" "search_blob_reader" {
+  scope                = local.rg_scope
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.search_service_identity.principal_id
 }
 

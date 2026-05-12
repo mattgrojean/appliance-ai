@@ -24,6 +24,14 @@ resource "azurerm_user_assigned_identity" "sync_func_identity" {
   location            = azurerm_resource_group.ai.location
 }
 
+# UAMI for Azure AI Search Service
+# Permissions: Read from knowledge base storage, call indexer skills
+resource "azurerm_user_assigned_identity" "search_service_identity" {
+  name                = "uami-${var.project_name}-${var.environment}-search"
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+}
+
 # -------------------------------------------------------
 # Entra ID App Registration for Chat Web App
 # -------------------------------------------------------
@@ -32,10 +40,9 @@ resource "azuread_application" "chat_app" {
   display_name = "Appliance AI Chat (${var.environment})"
 
   web {
-    # Redirect URI will be updated after the Container App gets its URL.
-    # Placeholder allows the app registration to be created now.
-    # Phase 6 will update this with the actual Container App URL.
-    redirect_uris = ["https://ca-${var.project_name}-${var.environment}.placeholder.azurecontainerapps.io/auth/callback"]
+    # redirect_uris are managed exclusively by azuread_application_redirect_uris in web.tf
+    # (set after the Container App is created and we know its FQDN).
+    # Do NOT set redirect_uris here — the two resources will conflict.
     implicit_grant {
       access_token_issuance_enabled = false
       id_token_issuance_enabled     = true
@@ -69,6 +76,12 @@ output "chat_app_identity_principal_id" {
   value       = azurerm_user_assigned_identity.chat_app_identity.principal_id
 }
 
+# client_id is what ManagedIdentityCredential(client_id=...) needs at runtime
+output "chat_app_identity_client_id" {
+  description = "Chat App UAMI client ID (pass as AZURE_CLIENT_ID env var to Container App)"
+  value       = azurerm_user_assigned_identity.chat_app_identity.client_id
+}
+
 output "sync_func_identity_id" {
   description = "Sync Function User-Assigned Managed Identity ID"
   value       = azurerm_user_assigned_identity.sync_func_identity.id
@@ -77,6 +90,21 @@ output "sync_func_identity_id" {
 output "sync_func_identity_principal_id" {
   description = "Sync Function UAMI principal ID (for RBAC)"
   value       = azurerm_user_assigned_identity.sync_func_identity.principal_id
+}
+
+output "search_service_identity_id" {
+  description = "Search Service User-Assigned Managed Identity ID"
+  value       = azurerm_user_assigned_identity.search_service_identity.id
+}
+
+output "search_service_identity_principal_id" {
+  description = "Search Service UAMI principal ID (for RBAC)"
+  value       = azurerm_user_assigned_identity.search_service_identity.principal_id
+}
+
+output "search_service_identity_client_id" {
+  description = "Search Service UAMI client ID"
+  value       = azurerm_user_assigned_identity.search_service_identity.client_id
 }
 
 output "entra_client_id" {

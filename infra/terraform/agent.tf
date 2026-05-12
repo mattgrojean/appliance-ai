@@ -1,4 +1,4 @@
-# Azure AI Services Account and Foundry Project
+﻿# Azure AI Services Account and Foundry Project
 # This is the core "brain" — provides OpenAI models, vector search, and more
 resource "azurerm_cognitive_account" "ai" {
   name                       = "aafa-${var.project_name}-${var.environment}"
@@ -58,4 +58,59 @@ output "openai_resource_name" {
 output "foundry_project_name" {
   description = "AI Foundry project name"
   value       = azurerm_cognitive_account_project.project.name
+}
+
+# -------------------------------------------------------
+# AI Foundry Project Connections
+# -------------------------------------------------------
+# Connections register external resources with the Foundry project so they
+# appear in the portal under "Connected resources" and can be used by Foundry Agents.
+# # The azurerm provider doesn't yet have a resource for these; we use azapi.
+
+# # Connection: Azure AI Search - Foundry project
+# # Appears in the portal as a searchable index data source.
+# resource "azapi_resource" "foundry_connection_search" {
+#   type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
+#   name      = "conn-search"
+#   parent_id = azurerm_cognitive_account_project.project.id
+
+#   body = {
+#     properties = {
+#       category = "AzureAISearch"
+#       target   = "https://${azurerm_search_service.search.name}.search.windows.net"
+#       authType = "AAD"
+#     }
+#   }
+
+#   response_export_values = ["*"]
+# }
+
+# # Connection: Azure Blob Storage - Foundry project
+# # Appears in the portal as a storage/document data source for the service-manuals container.
+# resource "azapi_resource" "foundry_connection_storage" {
+#   type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
+#   name      = "conn-storage-manuals"
+#   parent_id = azurerm_cognitive_account_project.project.id
+
+#   body = {
+#     properties = {
+#       category = "AzureBlob"
+#       target   = "https://${azurerm_storage_account.func.name}.blob.core.windows.net/${azurerm_storage_container.service_manuals.name}"
+#       authType = "AAD"
+#     }
+#   }
+
+#   response_export_values = ["*"]
+# }
+
+# Format: https://{custom_subdomain}.services.ai.azure.com/models
+output "inference_endpoint" {
+  description = "AI Foundry inference endpoint (for azure-ai-inference SDK)"
+  value       = "https://${azurerm_cognitive_account.ai.custom_subdomain_name}.services.ai.azure.com/models"
+}
+
+# AI Foundry project endpoint for AIProjectClient
+output "foundry_project_endpoint" {
+  description = "AI Foundry project endpoint (for AIProjectClient)"
+  value       = "https://${azurerm_cognitive_account.ai.custom_subdomain_name}.services.ai.azure.com/api/projects/${azurerm_cognitive_account_project.project.name}"
 }

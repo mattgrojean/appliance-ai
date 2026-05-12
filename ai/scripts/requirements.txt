@@ -1,0 +1,5 @@
+azure-search-documents>=11.4.0
+azure-identity>=1.17.0
+azure-storage-blob>=12.19.0
+pypdf>=4.0.0
+python-dotenv>=1.0.0
