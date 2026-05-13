@@ -22,20 +22,47 @@ resource "azurerm_storage_container" "service_manuals" {
 # Dedicated storage for service manual PDFs and AI enriched knowledge.
 # Uses Azure AD RBAC (no storage keys) for secure access via managed identities.
 resource "azurerm_storage_account" "knowledge" {
-  name                            = "stor${local.project_name_sanitized}${var.environment}know01"
-  resource_group_name             = azurerm_resource_group.ai.name
-  location                        = azurerm_resource_group.ai.location
-  account_tier                    = "Standard"
-  account_replication_type        = "LRS"
-  shared_access_key_enabled       = false
+  name                              = "stor${local.project_name_sanitized}${var.environment}know01"
+  resource_group_name               = azurerm_resource_group.ai.name
+  location                          = azurerm_resource_group.ai.location
+  account_tier                      = "Standard"
+  account_replication_type          = "LRS"
+  shared_access_key_enabled         = false
   infrastructure_encryption_enabled = true
 }
 
 # Blob container for service manual PDFs
 resource "azurerm_storage_container" "knowledge_service_manuals" {
   name                  = "service-manuals"
-  storage_account_name  = azurerm_storage_account.knowledge.name
+  storage_account_id    = azurerm_storage_account.knowledge.id
   container_access_type = "private"
+}
+
+# Diagnostic settings for the knowledge blob service logs and metrics
+resource "azurerm_monitor_diagnostic_setting" "knowledge_storage_diagnostics" {
+  name                       = "knowledge-storage-diagnostics"
+  target_resource_id         = "${azurerm_storage_account.knowledge.id}/blobServices/default"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+
+  enabled_log {
+    category = "StorageRead"
+  }
+
+  enabled_log {
+    category = "StorageWrite"
+  }
+
+  enabled_log {
+    category = "StorageDelete"
+  }
+
+  enabled_metric {
+    category = "Capacity"
+  }
+
+  enabled_metric {
+    category = "Transaction"
+  }
 }
 
 # Outputs for reference

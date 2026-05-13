@@ -78,12 +78,20 @@ resource "azurerm_role_assignment" "app_ai_user" {
 # Search Service Permissions
 # -------------------------------------------------------
 
-# Search Service → Storage Blob Data (read service manuals for indexing)
-# The Search Service uses Azure AD authentication to access storage blobs
-# via this role assignment. No storage account keys are required.
+# Search Service system identity → Storage (read service manuals for indexing)
+# Consolidated here; the specific knowledge-storage assignment in search.tf also covers this.
 resource "azurerm_role_assignment" "search_blob_reader" {
   scope                = local.rg_scope
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.search_service_identity.principal_id
+  principal_id         = azurerm_search_service.search.identity[0].principal_id
+}
+
+# Search Service system identity → Azure OpenAI (call embedding model in skillset)
+# Required so the AzureOpenAIEmbeddingSkill authenticates via managed identity
+# with no API key (apiKey and authIdentity left empty in the skill definition).
+resource "azurerm_role_assignment" "search_openai_user" {
+  scope                = local.rg_scope
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = azurerm_search_service.search.identity[0].principal_id
 }
 

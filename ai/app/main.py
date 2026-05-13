@@ -26,7 +26,7 @@ from pydantic import BaseModel
 from azure.ai.inference.aio import ChatCompletionsClient
 
 from chat import get_credential, stream_chat
-from search import search_both_indexes, format_context
+from search import search_both_indexes, format_context, extract_pdf_citations
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -81,9 +81,10 @@ async def chat(req: ChatRequest, request: Request):
         brand=req.brand,
     )
     context = format_context(results)
+    citations = extract_pdf_citations(results)
 
     return StreamingResponse(
-        stream_chat(request.app.state.chat_client, req.message, context),
+        stream_chat(request.app.state.chat_client, req.message, context, citations),
         media_type="text/event-stream",
         headers={"X-Accel-Buffering": "no"},  # disable nginx/proxy buffering
     )

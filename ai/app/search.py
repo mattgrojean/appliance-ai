@@ -72,3 +72,31 @@ def format_context(results: list[dict]) -> str:
                 f"{r.get('chunk_text') or r.get('content', '')}"
             )
     return "\n\n".join(lines)
+
+
+def extract_pdf_citations(results: list[dict]) -> list[dict]:
+    """Return unique PDF citations from manual search hits in display order."""
+    citations = []
+    seen: set[tuple[str, int | None]] = set()
+
+    for r in results:
+        if r.get("_source") != "manual":
+            continue
+
+        source_file = r.get("source_file", "unknown")
+        page_number = r.get("page_number")
+        key = (source_file, page_number)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        citations.append(
+            {
+                "source_file": source_file,
+                "page_number": page_number,
+                "brand": r.get("brand", ""),
+                "model_series": r.get("model_series", ""),
+            }
+        )
+
+    return citations

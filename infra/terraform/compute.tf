@@ -38,11 +38,11 @@ resource "azurerm_linux_function_app" "sync" {
   }
 
   app_settings = {
-    WORKIZ_API_KEY              = var.workiz_api_key
-    SEARCH_ENDPOINT             = "https://${azurerm_search_service.search.name}.search.windows.net"
-    SEARCH_INDEX_TICKETS        = "repair-tickets"
-    OPENAI_ENDPOINT             = azurerm_cognitive_account.ai.endpoint
-    FUNCTIONS_WORKER_RUNTIME    = "python"
+    WORKIZ_API_KEY                 = var.workiz_api_key
+    SEARCH_ENDPOINT                = "https://${azurerm_search_service.search.name}.search.windows.net"
+    SEARCH_INDEX_TICKETS           = "repair-tickets"
+    OPENAI_ENDPOINT                = azurerm_cognitive_account.ai.endpoint
+    FUNCTIONS_WORKER_RUNTIME       = "python"
     SCM_DO_BUILD_DURING_DEPLOYMENT = "true"
   }
 }

@@ -1,4 +1,4 @@
-﻿# Azure AI Services Account and Foundry Project
+# Azure AI Services Account and Foundry Project
 # This is the core "brain" — provides OpenAI models, vector search, and more
 resource "azurerm_cognitive_account" "ai" {
   name                       = "aafa-${var.project_name}-${var.environment}"
@@ -41,6 +41,22 @@ resource "azurerm_cognitive_deployment" "gpt4o" {
   sku {
     name     = "GlobalStandard"
     capacity = 10
+  }
+}
+
+# Model Deployment: text-embedding-3-small
+# Used by the AI Search skillset to generate vector embeddings for RAG indexing.
+resource "azurerm_cognitive_deployment" "embedding" {
+  name                 = "text-embedding-3-small"
+  cognitive_account_id = azurerm_cognitive_account.ai.id
+  model {
+    format  = "OpenAI"
+    name    = "text-embedding-3-small"
+    version = "1"
+  }
+  sku {
+    name     = "Standard"
+    capacity = 120 # 120K TPM — sufficient for batch indexing
   }
 }
 

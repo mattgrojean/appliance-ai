@@ -24,14 +24,6 @@ resource "azurerm_user_assigned_identity" "sync_func_identity" {
   location            = azurerm_resource_group.ai.location
 }
 
-# UAMI for Azure AI Search Service
-# Permissions: Read from knowledge base storage, call indexer skills
-resource "azurerm_user_assigned_identity" "search_service_identity" {
-  name                = "uami-${var.project_name}-${var.environment}-search"
-  resource_group_name = azurerm_resource_group.ai.name
-  location            = azurerm_resource_group.ai.location
-}
-
 # -------------------------------------------------------
 # Entra ID App Registration for Chat Web App
 # -------------------------------------------------------
@@ -90,21 +82,6 @@ output "sync_func_identity_id" {
 output "sync_func_identity_principal_id" {
   description = "Sync Function UAMI principal ID (for RBAC)"
   value       = azurerm_user_assigned_identity.sync_func_identity.principal_id
-}
-
-output "search_service_identity_id" {
-  description = "Search Service User-Assigned Managed Identity ID"
-  value       = azurerm_user_assigned_identity.search_service_identity.id
-}
-
-output "search_service_identity_principal_id" {
-  description = "Search Service UAMI principal ID (for RBAC)"
-  value       = azurerm_user_assigned_identity.search_service_identity.principal_id
-}
-
-output "search_service_identity_client_id" {
-  description = "Search Service UAMI client ID"
-  value       = azurerm_user_assigned_identity.search_service_identity.client_id
 }
 
 output "entra_client_id" {

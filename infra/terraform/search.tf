@@ -8,6 +8,7 @@ resource "azurerm_search_service" "search" {
   sku                 = "standard"
   semantic_search_sku = "standard"
 
+
   # Enable RBAC authentication (aadOrApiKey) so managed identities and
   # az-login credentials can call the Search API without an API key.
   # This is required for DefaultAzureCredential / AzureCliCredential to work.
@@ -15,8 +16,7 @@ resource "azurerm_search_service" "search" {
 
   # Assign the UAMI so indexers can authenticate to storage with Azure AD
   identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.search_service_identity.id]
+    type = "SystemAssigned"
   }
 
   # "free" tier: no cost, 50MB storage, 3 indexes, no semantic search.
@@ -24,6 +24,13 @@ resource "azurerm_search_service" "search" {
   # Change to: sku = "standard" and set semantic_search_sku = "standard" below.
   # semantic_search_sku = "standard"
 }
+
+resource "azurerm_role_assignment" "search_service_identity" {
+  scope                = azurerm_storage_account.knowledge.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_search_service.search.identity[0].principal_id
+}
+
 
 # Diagnostic settings for Azure AI Search indexer logs and metrics
 resource "azurerm_monitor_diagnostic_setting" "search_diagnostics" {
